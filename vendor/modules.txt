@@ -1,30 +1,37 @@
-# github.com/andybalholm/brotli v1.0.2
-github.com/andybalholm/brotli
+# github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
+github.com/axgle/mahonia
+# github.com/fesiong/goproject/convert v0.0.0-20210704021036-e172b77c040e
+## explicit
+github.com/fesiong/goproject/convert
+# github.com/go-sql-driver/mysql v1.5.0
+## explicit
+# github.com/gogf/gf v1.16.5
+## explicit
 # github.com/imroc/req v0.3.0
 ## explicit
 github.com/imroc/req
-# github.com/klauspost/compress v1.13.4
-github.com/klauspost/compress/flate
-github.com/klauspost/compress/gzip
-github.com/klauspost/compress/zlib
 # github.com/mattn/go-runewidth v0.0.13
 github.com/mattn/go-runewidth
 # github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 github.com/mitchellh/colorstring
+# github.com/parnurzeal/gorequest v0.2.16
+github.com/parnurzeal/gorequest
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # github.com/rivo/uniseg v0.2.0
 github.com/rivo/uniseg
 # github.com/schollz/progressbar/v3 v3.8.2
 ## explicit
 github.com/schollz/progressbar/v3
-# github.com/valyala/bytebufferpool v1.0.0
-github.com/valyala/bytebufferpool
 # github.com/valyala/fasthttp v1.29.0
 ## explicit
-github.com/valyala/fasthttp
-github.com/valyala/fasthttp/fasthttputil
-github.com/valyala/fasthttp/stackless
 # golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/net v0.0.0-20210510120150-4163338589ed
+golang.org/x/net/html
+golang.org/x/net/html/atom
+golang.org/x/net/html/charset
+golang.org/x/net/publicsuffix
 # golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -32,3 +39,23 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 golang.org/x/term
+# golang.org/x/text v0.3.6
+golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
+golang.org/x/text/encoding/unicode
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
+golang.org/x/text/runes
+golang.org/x/text/transform
+# moul.io/http2curl v1.0.0
+moul.io/http2curl

@@ -6,15 +6,15 @@ import (
 	"flag"
 	"fmt"
 	"github.com/imroc/req"
+	"github.com/schollz/progressbar/v3"
 	"log"
+	"net"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"github.com/schollz/progressbar/v3"
-	"net"
 )
 
 type Urlstat struct {
@@ -22,80 +22,6 @@ type Urlstat struct {
 	title    string
 	statcode int
 	url_ip   string
-}
-
-func main() {
-	// 设置flag
-	tmpcsv := strconv.Itoa(int(time.Now().Unix())) + ".csv"
-	var routineCountTotal int
-	var filepath string
-	var csvpath string
-	var pproxy string
-	var stime int
-	flag.StringVar(&filepath, "r", "", "传入待测试地址文件,默认为空")
-	flag.IntVar(&routineCountTotal, "g", 3, "线程数")
-	flag.IntVar(&stime, "t", 5, "设置访问超时时长")
-	flag.StringVar(&csvpath, "o", tmpcsv, "传入生成的csv文件的地址,默认为当前路径")
-	flag.StringVar(&pproxy, "p", "", "设置代理地址,默认为空;例：http://127.0.0.1:10809")
-	flag.Parse()
-
-	// 处理URL
-	ss := file_operation(filepath)
-
-	// 设置进度条
-	bar := progressbar.Default(int64(len(ss)))
-
-	// 创建go程
-	g := golimit.NewG(routineCountTotal)
-	wg := &sync.WaitGroup{}
-
-	// 开始访问目标
-	var totalsl []Urlstat
-	for i := 0; i < len(ss); i++ {
-		wg.Add(1)
-		task := ss[i]
-		g.Run(func() {
-			defer func() { // 当go程崩溃时触发
-				if err := recover(); err != nil {
-					wg.Done()
-					fmt.Println(err)
-				}
-			}()
-			title, stacode, err := url_request(task, pproxy, stime)
-			if err != nil {
-				// fmt.Printf("\nerror : %s无法访问\n", task)
-				var tmpn Urlstat
-				tmpn.url = task
-				tmpn.title = "无法访问"
-				tmpn.statcode = 0
-				totalsl = append(totalsl, tmpn)
-			} else {
-				var tmpn Urlstat
-				tmpn.url = task
-				tmpn.title = title
-				tmpn.statcode = stacode
-				if strings.HasPrefix(task, "https") {
-					task = string([]byte(task)[8:])
-				} else {
-					task = string([]byte(task)[7:])
-				}
-				addr, err := net.ResolveIPAddr("ip", task)
-				if err != nil {
-					fmt.Println(err)
-					tmpn.url_ip = "NULL"
-					totalsl = append(totalsl, tmpn)
-				} else {
-					tmpn.url_ip = addr.String()
-					totalsl = append(totalsl, tmpn)
-				}
-			}
-			wg.Done()
-			bar.Add(1)
-		})
-	}
-	wg.Wait()
-	// fmt.Println(totalsl[1])
-	writerCSV(csvpath, totalsl)
 }
 
 func url_request(url string, pproxy string, sstime int) (title string, stacode int, err error) {
@@ -115,9 +41,9 @@ func url_request(url string, pproxy string, sstime int) (title string, stacode i
 		resp := r.Response()
 		data := string(r.Bytes())
 		sta_code := resp.StatusCode
-		r := regexp.MustCompile("<title>(.+)</title>")
-		if r.MatchString(data) {
-			s := r.FindStringSubmatch(data)
+		re := regexp.MustCompile("<title>(.+)</title>")
+		if re.MatchString(data) {
+			s := re.FindStringSubmatch(data)
 			return string(s[1]), sta_code, err
 		} else {
 			var s = [2]int{0, 0}
@@ -162,4 +88,83 @@ func writerCSV(path string, totsl []Urlstat) {
 	}
 
 	log.Println("\n数据写入完成...\n")
+}
+
+func data_processing(routineCT int, ss []string, pproxy string, sstime int) []Urlstat {
+	g := golimit.NewG(routineCT) // 创建go程
+	wg := &sync.WaitGroup{}
+	bar := progressbar.Default(int64(len(ss))) // 设置进度条
+	// 开始访问目标
+	var totalsl []Urlstat
+	for i := 0; i < len(ss); i++ {
+		wg.Add(1)
+		task := ss[i]
+		g.Run(func() {
+			defer func() { // 当go程崩溃时触发
+				if err := recover(); err != nil {
+					wg.Done()
+					fmt.Println(err)
+				}
+			}()
+			title, stacode, err := url_request(task, pproxy, sstime)
+			if err != nil {
+				// fmt.Printf("\nerror : %s无法访问\n", task)
+				var tmpn Urlstat
+				tmpn.url = task
+				tmpn.title = "无法访问"
+				tmpn.statcode = 0
+				totalsl = append(totalsl, tmpn)
+			} else {
+				var tmpn Urlstat
+				tmpn.url = task
+				tmpn.title = title
+				tmpn.statcode = stacode
+				if strings.HasPrefix(task, "https") {
+					task = string([]byte(task)[8:])
+				} else {
+					task = string([]byte(task)[7:])
+				}
+				addr, err := net.ResolveIPAddr("ip", task)
+				if err != nil {
+					fmt.Println(err)
+					tmpn.url_ip = "NULL"
+					totalsl = append(totalsl, tmpn)
+				} else {
+					tmpn.url_ip = addr.String()
+					totalsl = append(totalsl, tmpn)
+				}
+			}
+			wg.Done()
+			bar.Add(1)
+		})
+	}
+	wg.Wait()
+	return totalsl
+}
+
+func set_flag() (string, int, int, string, string) {
+	tmpcsv := strconv.Itoa(int(time.Now().Unix())) + ".csv"
+	var routineCountTotal int
+	var filepath string
+	var csvpath string
+	var pproxy string
+	var stime int
+	flag.StringVar(&filepath, "r", "", "传入待测试地址文件,默认为空")
+	flag.IntVar(&routineCountTotal, "g", 3, "线程数")
+	flag.IntVar(&stime, "t", 5, "设置访问超时时长")
+	flag.StringVar(&csvpath, "o", tmpcsv, "传入生成的csv文件的地址,默认为当前路径")
+	flag.StringVar(&pproxy, "p", "", "设置代理地址,默认为空;例：http://127.0.0.1:10809")
+	flag.Parse()
+	return filepath, routineCountTotal, stime, csvpath, pproxy
+}
+
+func main() {
+	// 设置flag
+	filepath, routineCountTotal, stime, csvpath, pproxy := set_flag()
+	// 处理URL
+	ss := file_operation(filepath)
+	// 创建go程并处理数据
+	totalsl := data_processing(routineCountTotal, ss, pproxy, stime)
+	// fmt.Println(totalsl[1])
+	writerCSV(csvpath, totalsl)
 }
