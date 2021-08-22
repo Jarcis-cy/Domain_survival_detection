@@ -5,9 +5,11 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/goWhatweb"
 	"github.com/imroc/req"
 	"github.com/schollz/progressbar/v3"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"regexp"
@@ -22,12 +24,19 @@ type Urlstat struct {
 	title    string
 	statcode int
 	url_ip   string
+	cms      string
+}
+
+type url_cms struct {
+	Domain string
+	Cms    string
 }
 
 func url_request(url string, pproxy string, sstime int) (title string, stacode int, err error) {
 	tmp_url := url
+	ua := get_random_ua()
 	header := req.Header{
-		"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73",
+		"user-agent": ua,
 	}
 	if pproxy != "" {
 		req.SetProxyUrl(pproxy)
@@ -80,10 +89,10 @@ func writerCSV(path string, totsl []Urlstat) {
 	defer file.Close()
 	file.WriteString("\xEF\xBB\xBF")
 	//创建写入接口
-	file.WriteString("目标URL,目标Title,响应状态码,IP\n")
+	file.WriteString("目标URL,目标Title,响应状态码,IP,CMS\n")
 	//写入一条数据，传入数据为切片(追加模式)
 	for i := 0; i < len(totsl); i++ {
-		line := totsl[i].url + "," + totsl[i].title + "," + strconv.Itoa(totsl[i].statcode) + "," + totsl[i].url_ip + "\n"
+		line := totsl[i].url + "," + totsl[i].title + "," + strconv.Itoa(totsl[i].statcode) + "," + totsl[i].url_ip + "," + totsl[i].cms + "\n"
 		file.WriteString(line)
 	}
 
@@ -96,6 +105,7 @@ func data_processing(routineCT int, ss []string, pproxy string, sstime int) []Ur
 	bar := progressbar.Default(int64(len(ss))) // 设置进度条
 	// 开始访问目标
 	var totalsl []Urlstat
+	log.Println("开始访问目标......")
 	for i := 0; i < len(ss); i++ {
 		wg.Add(1)
 		task := ss[i]
@@ -126,7 +136,7 @@ func data_processing(routineCT int, ss []string, pproxy string, sstime int) []Ur
 				}
 				addr, err := net.ResolveIPAddr("ip", task)
 				if err != nil {
-					fmt.Println(err)
+					// fmt.Println(err)
 					tmpn.url_ip = "NULL"
 					totalsl = append(totalsl, tmpn)
 				} else {
@@ -142,29 +152,65 @@ func data_processing(routineCT int, ss []string, pproxy string, sstime int) []Ur
 	return totalsl
 }
 
-func set_flag() (string, int, int, string, string) {
+func get_random_ua() string {
+	USER_AGENTS := []string{"Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
+		"Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Acoo Browser; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.0.04506)",
+		"Mozilla/4.0 (compatible; MSIE 7.0; AOL 9.5; AOLBuild 4337.35; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
+		"Mozilla/5.0 (Windows; U; MSIE 9.0; Windows NT 9.0; en-US)",
+		"Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Win64; x64; Trident/5.0; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 2.0.50727; Media Center PC 6.0)",
+		"Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 1.0.3705; .NET CLR 1.1.4322)",
+		"Mozilla/4.0 (compatible; MSIE 7.0b; Windows NT 5.2; .NET CLR 1.1.4322; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 3.0.04506.30)",
+		"Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN) AppleWebKit/523.15 (KHTML, like Gecko, Safari/419.3) Arora/0.3 (Change: 287 c9dfb30)",
+		"Mozilla/5.0 (X11; U; Linux; en-US) AppleWebKit/527+ (KHTML, like Gecko, Safari/419.3) Arora/0.6",
+		"Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.2pre) Gecko/20070215 K-Ninja/2.1.1",
+		"Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9) Gecko/20080705 Firefox/3.0 Kapiko/3.0",
+		"Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5",
+		"Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.8) Gecko Fedora/1.9.0.8-1.fc10 Kazehakase/0.5.6",
+		"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_3) AppleWebKit/535.20 (KHTML, like Gecko) Chrome/19.0.1036.7 Safari/535.20",
+		"Opera/9.80 (Macintosh; Intel Mac OS X 10.6.8; U; fr) Presto/2.9.168 Version/11.52"}
+	length := len(USER_AGENTS)
+	index := rand.Intn(length)
+	return USER_AGENTS[index]
+}
+
+func set_flag() (string, int, int, string, string, bool) {
 	tmpcsv := strconv.Itoa(int(time.Now().Unix())) + ".csv"
 	var routineCountTotal int
 	var filepath string
 	var csvpath string
 	var pproxy string
 	var stime int
+	var cmstf bool
 	flag.StringVar(&filepath, "r", "", "传入待测试地址文件,默认为空")
 	flag.IntVar(&routineCountTotal, "g", 3, "线程数")
 	flag.IntVar(&stime, "t", 5, "设置访问超时时长")
 	flag.StringVar(&csvpath, "o", tmpcsv, "传入生成的csv文件的地址,默认为当前路径")
 	flag.StringVar(&pproxy, "p", "", "设置代理地址,默认为空;例：http://127.0.0.1:10809")
+	flag.BoolVar(&cmstf, "c", false, "设置为ture时，启动cms识别功能")
 	flag.Parse()
-	return filepath, routineCountTotal, stime, csvpath, pproxy
+	return filepath, routineCountTotal, stime, csvpath, pproxy, cmstf
 }
 
 func main() {
 	// 设置flag
-	filepath, routineCountTotal, stime, csvpath, pproxy := set_flag()
+	filepath, routineCountTotal, stime, csvpath, pproxy, cmstf := set_flag()
 	// 处理URL
 	ss := file_operation(filepath)
 	// 创建go程并处理数据
 	totalsl := data_processing(routineCountTotal, ss, pproxy, stime)
-	// fmt.Println(totalsl[1])
+	log.Println("目标请求完成")
+	if cmstf {
+		log.Println("开始进行cms探测......")
+		uc_list := goWhatweb.Gww(ss)
+		for i := 0; i < len(totalsl); i++ {
+			for j := 0; j < len(uc_list); j++ {
+				if totalsl[i].url == uc_list[j].Domain {
+					totalsl[i].cms = uc_list[j].Cms
+				}
+			}
+		}
+		log.Println("cms探测完成")
+	}
 	writerCSV(csvpath, totalsl)
 }
