@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/goWhatweb"
-	"github.com/imroc/req"
+	"github.com/goWhatweb/fetch"
 	"github.com/schollz/progressbar/v3"
 	"log"
 	"math/rand"
@@ -32,24 +32,13 @@ type url_cms struct {
 	Cms    string
 }
 
-func url_request(url string, pproxy string, sstime int) (title string, stacode int, err error) {
-	tmp_url := url
-	ua := get_random_ua()
-	header := req.Header{
-		"user-agent": ua,
-	}
-	if pproxy != "" {
-		req.SetProxyUrl(pproxy)
-	}
-	req.SetTimeout(time.Duration(sstime) * time.Second)
-	r, err := req.Get(tmp_url, header)
+func url_request(url string, pproxy string) (string, int, error) {
+	data, _, sta_code, err := fetch.Get(url, pproxy)
 	if err != nil {
 		var s = [2]int{0, 0}
 		return string(s[1]), 0, err
 	} else {
-		resp := r.Response()
-		data := string(r.Bytes())
-		sta_code := resp.StatusCode
+		data := string(data)
 		re := regexp.MustCompile("<title>(.+)</title>")
 		if re.MatchString(data) {
 			s := re.FindStringSubmatch(data)
@@ -99,7 +88,7 @@ func writerCSV(path string, totsl []Urlstat) {
 	log.Println("\n数据写入完成...\n")
 }
 
-func data_processing(routineCT int, ss []string, pproxy string, sstime int) []Urlstat {
+func data_processing(routineCT int, ss []string, pproxy string) []Urlstat {
 	g := golimit.NewG(routineCT) // 创建go程
 	wg := &sync.WaitGroup{}
 	bar := progressbar.Default(int64(len(ss))) // 设置进度条
@@ -116,7 +105,7 @@ func data_processing(routineCT int, ss []string, pproxy string, sstime int) []Ur
 					fmt.Println(err)
 				}
 			}()
-			title, stacode, err := url_request(task, pproxy, sstime)
+			title, stacode, err := url_request(task, pproxy)
 			if err != nil {
 				// fmt.Printf("\nerror : %s无法访问\n", task)
 				var tmpn Urlstat
@@ -174,35 +163,33 @@ func get_random_ua() string {
 	return USER_AGENTS[index]
 }
 
-func set_flag() (string, int, int, string, string, bool) {
+func set_flag() (string, int, string, string, bool) {
 	tmpcsv := strconv.Itoa(int(time.Now().Unix())) + ".csv"
 	var routineCountTotal int
 	var filepath string
 	var csvpath string
 	var pproxy string
-	var stime int
 	var cmstf bool
 	flag.StringVar(&filepath, "r", "", "传入待测试地址文件,默认为空")
 	flag.IntVar(&routineCountTotal, "g", 3, "线程数")
-	flag.IntVar(&stime, "t", 5, "设置访问超时时长")
 	flag.StringVar(&csvpath, "o", tmpcsv, "传入生成的csv文件的地址,默认为当前路径")
 	flag.StringVar(&pproxy, "p", "", "设置代理地址,默认为空;例：http://127.0.0.1:10809")
 	flag.BoolVar(&cmstf, "c", false, "设置为ture时，启动cms识别功能")
 	flag.Parse()
-	return filepath, routineCountTotal, stime, csvpath, pproxy, cmstf
+	return filepath, routineCountTotal, csvpath, pproxy, cmstf
 }
 
 func main() {
 	// 设置flag
-	filepath, routineCountTotal, stime, csvpath, pproxy, cmstf := set_flag()
+	filepath, routineCountTotal, csvpath, pproxy, cmstf := set_flag()
 	// 处理URL
 	ss := file_operation(filepath)
 	// 创建go程并处理数据
-	totalsl := data_processing(routineCountTotal, ss, pproxy, stime)
+	totalsl := data_processing(routineCountTotal, ss, pproxy)
 	log.Println("目标请求完成")
 	if cmstf {
 		log.Println("开始进行cms探测......")
-		uc_list := goWhatweb.Gww(ss)
+		uc_list := goWhatweb.Gww(ss, pproxy)
 		for i := 0; i < len(totalsl); i++ {
 			for j := 0; j < len(uc_list); j++ {
 				if totalsl[i].url == uc_list[j].Domain {

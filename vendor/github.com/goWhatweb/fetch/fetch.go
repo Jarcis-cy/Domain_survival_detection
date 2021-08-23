@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -32,47 +33,92 @@ func get_random_ua() string {
 
 }
 
-func Head(url string) (resp *http.Response, err error) {
-	transCfg := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
-	}
+func Head(url_a string, pproxy string) (resp *http.Response, err error) {
+	if pproxy != "" {
+		aproxy, _ := url.Parse(pproxy)
+		transCfg := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
+			Proxy:           http.ProxyURL(aproxy),
+		}
+		Client := &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: transCfg,
+		}
+		req, err := http.NewRequest("HEAD", url_a, nil)
 
-	Client := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: transCfg,
-	}
-	req, err := http.NewRequest("HEAD", url, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Add("User-Agent", get_random_ua())
+		resp, err2 := Client.Do(req)
+		return resp, err2
+	} else {
+		transCfg := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
+		}
+		Client := &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: transCfg,
+		}
+		req, err := http.NewRequest("HEAD", url_a, nil)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Add("User-Agent", get_random_ua())
+		resp, err2 := Client.Do(req)
+		return resp, err2
 	}
-	req.Header.Add("User-Agent", get_random_ua())
-	resp, err2 := Client.Do(req)
-	return resp, err2
-
 }
 
-func Get(url string) (content []byte, header http.Header, err error) {
-	transCfg := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
-	}
+func Get(url_a string, pproxy string) (content []byte, header http.Header, statcode int, err error) {
+	if pproxy != "" {
+		aproxy, _ := url.Parse(pproxy)
+		transCfg := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
+			Proxy:           http.ProxyURL(aproxy),
+		}
+		Client := &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: transCfg,
+		}
 
-	Client := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: transCfg,
-	}
-	req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequest("GET", url_a, nil)
 
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Add("User-Agent", get_random_ua())
-	resp, err2 := Client.Do(req)
-	if err2 != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-	bytes, _ := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+		req.Header.Add("User-Agent", get_random_ua())
+		resp, err2 := Client.Do(req)
+		if err2 != nil {
+			return nil, nil, 0, err
+		}
+		defer resp.Body.Close()
+		bytes, _ := ioutil.ReadAll(resp.Body)
 
-	return bytes, resp.Header, nil
+		return bytes, resp.Header, resp.StatusCode, nil
+	} else {
+		transCfg := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
+		}
+		Client := &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: transCfg,
+		}
+
+		req, err := http.NewRequest("GET", url_a, nil)
+
+		if err != nil {
+			return nil, nil, 0, err
+		}
+		req.Header.Add("User-Agent", get_random_ua())
+		resp, err2 := Client.Do(req)
+		if err2 != nil {
+			return nil, nil, 0, err
+		}
+		defer resp.Body.Close()
+		bytes, _ := ioutil.ReadAll(resp.Body)
+
+		return bytes, resp.Header, resp.StatusCode, nil
+	}
 }
