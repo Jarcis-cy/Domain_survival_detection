@@ -27,7 +27,6 @@ type Worker struct {
 	finished      bool // 是否完成
 	mutex         sync.Mutex
 	count_timeout int // 超时次数
-	pproxy        string
 }
 
 type JobStruct struct {
@@ -36,7 +35,7 @@ type JobStruct struct {
 	Cmsdata []until.Singcms
 }
 
-func NewWorker(count int, domain string, wg *sync.WaitGroup, ResultChain chan string, proxy string) Worker {
+func NewWorker(count int, domain string, wg *sync.WaitGroup, ResultChain chan string) Worker {
 	return Worker{
 		MaxPool:       count,
 		quit:          make(chan bool, count),
@@ -47,7 +46,6 @@ func NewWorker(count int, domain string, wg *sync.WaitGroup, ResultChain chan st
 		wg:            wg,
 		finished:      false,
 		count_timeout: 0,
-		pproxy:        proxy,
 	}
 }
 
@@ -67,7 +65,7 @@ func (w *Worker) Start() {
 }
 
 func (w *Worker) Checkout() bool {
-	bytes, headers, _, err := fetch.Get(w.domain, w.pproxy)
+	bytes, headers, _, err := fetch.Get(w.domain)
 	if err != nil {
 		w.ResultChain <- "Domain:" + w.domain + " 请求首页失败"
 		return false
@@ -145,7 +143,7 @@ func (w *Worker) Run() {
 
 func Comsumer(job JobStruct, w *Worker) {
 	url := job.Domain + job.Path
-	resp, e := fetch.Head(url, w.pproxy)
+	resp, e := fetch.Head(url)
 	if e != nil {
 		w.mutex.Lock()
 		w.count_timeout++
@@ -162,7 +160,7 @@ func Comsumer(job JobStruct, w *Worker) {
 		defer w.wg.Done()
 		return
 	}
-	content, _, _, err := fetch.Get(url, w.pproxy)
+	content, _, _, err := fetch.Get(url)
 	if err != nil {
 		// 延时几秒重发
 		time.Sleep(2 * time.Second)

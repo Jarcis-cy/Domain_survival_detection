@@ -17,7 +17,7 @@ type url_cms struct {
 	Cms    string
 }
 
-func Gww(domains []string, pproxy string) []url_cms {
+func Gww(domains []string) []url_cms {
 	//domains := []string{"https://www.hacking8.com", "https://x.hacking8.com"}
 
 	// 加载指纹
@@ -29,7 +29,7 @@ func Gww(domains []string, pproxy string) []url_cms {
 	fmt.Println("Load url:", domains)
 	for _, domain := range domains {
 		go func(d string) {
-			newWorker := engine.NewWorker(7, d, &wg, ResultChian, pproxy)
+			newWorker := engine.NewWorker(7, d, &wg, ResultChian)
 			if !newWorker.Checkout() {
 				return
 			}
