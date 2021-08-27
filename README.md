@@ -15,4 +15,7 @@
         传入待测试地址文件,默认为空
 ```
 ##### Example
-`go run main.go -r text.txt -c ture`
+`go run main.go -r text.txt -c true`
+
+##### 注意
+需要将Uscan的可执行程序与cms.json,waf.txt置于同一目录下
