@@ -2,11 +2,12 @@ package main
 
 import (
 	"Domain_survival_detection/golimit"
+	"Domain_survival_detection/pping"
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/goWhatweb"
-	"github.com/goWhatweb/fetch"
+	"Domain_survival_detection/goWhatweb"
+	"Domain_survival_detection/goWhatweb/fetch"
 	"github.com/schollz/progressbar/v3"
 	"log"
 	"math/rand"
@@ -25,12 +26,19 @@ type Urlstat struct {
 	statcode int
 	url_ip   string
 	cms      string
+	cdn      string
 }
 
 type url_cms struct {
 	Domain string
 	Cms    string
 }
+
+type url_cdn struct {
+	Domain string
+	Cdn    string
+}
+
 
 func url_request(url string) (string, int, error) {
 	data, _, sta_code, err := fetch.Get(url)
@@ -78,10 +86,10 @@ func writerCSV(path string, totsl []Urlstat) {
 	defer file.Close()
 	file.WriteString("\xEF\xBB\xBF")
 	//创建写入接口
-	file.WriteString("目标URL,目标Title,响应状态码,IP,CMS\n")
+	file.WriteString("目标URL,目标Title,响应状态码,IP,CMS,CDN\n")
 	//写入一条数据，传入数据为切片(追加模式)
 	for i := 0; i < len(totsl); i++ {
-		line := totsl[i].url + "," + totsl[i].title + "," + strconv.Itoa(totsl[i].statcode) + "," + totsl[i].url_ip + "," + totsl[i].cms + "\n"
+		line := totsl[i].url + "," + totsl[i].title + "," + strconv.Itoa(totsl[i].statcode) + "," + totsl[i].url_ip + "," + totsl[i].cms + "," + totsl[i].cdn + "\n"
 		file.WriteString(line)
 	}
 
@@ -163,23 +171,25 @@ func get_random_ua() string {
 	return USER_AGENTS[index]
 }
 
-func set_flag() (string, int, string, bool) {
+func set_flag() (string, int, string, bool, bool) {
 	tmpcsv := strconv.Itoa(int(time.Now().Unix())) + ".csv"
 	var routineCountTotal int
 	var filepath string
 	var csvpath string
 	var cmstf bool
+	var cdntf bool
 	flag.StringVar(&filepath, "r", "", "传入待测试地址文件,默认为空")
 	flag.IntVar(&routineCountTotal, "g", 3, "线程数")
 	flag.StringVar(&csvpath, "o", tmpcsv, "传入生成的csv文件的地址,默认为当前路径")
-	flag.BoolVar(&cmstf, "c", false, "设置为ture时，启动cms识别功能")
+	flag.BoolVar(&cmstf, "c", false, "当添加该参数时，启动cms识别功能")
+	flag.BoolVar(&cdntf, "d", false, "当添加该参数时，启动cdn识别功能")
 	flag.Parse()
-	return filepath, routineCountTotal, csvpath, cmstf
+	return filepath, routineCountTotal, csvpath, cmstf, cdntf
 }
 
 func main() {
 	// 设置flag
-	filepath, routineCountTotal, csvpath, cmstf := set_flag()
+	filepath, routineCountTotal, csvpath, cmstf, cdntf := set_flag()
 	// 处理URL
 	if filepath == "" {
 		fmt.Printf("请添加参数r，并添加要检测的url文本")
@@ -199,6 +209,31 @@ func main() {
 				}
 			}
 			log.Println("cms探测完成")
+			if cdntf {
+				log.Println("开始进行cdn探测......")
+				ucdn_list := pping.Pping(ss)
+				for i := 0; i < len(totalsl); i++ {
+					for j := 0; j < len(ucdn_list); j++ {
+						if totalsl[i].url == ucdn_list[j].Domain {
+							totalsl[i].cdn = ucdn_list[j].Cdn
+						}
+					}
+				}
+				log.Println("cdn探测完成")
+			}
+		} else {
+			if cdntf {
+				log.Println("开始进行cdn探测......")
+				ucdn_list := pping.Pping(ss)
+				for i := 0; i < len(totalsl); i++ {
+					for j := 0; j < len(ucdn_list); j++ {
+						if totalsl[i].url == ucdn_list[j].Domain {
+							totalsl[i].cdn = ucdn_list[j].Cdn
+						}
+					}
+				}
+				log.Println("cdn探测完成")
+			}
 		}
 		writerCSV(csvpath, totalsl)
 	}
