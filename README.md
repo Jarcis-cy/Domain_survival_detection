@@ -1,6 +1,6 @@
 # Domain_survival_detection
 ### 域名存活检测
-初学go语言，通过golang实现对大批量的域名进行存活检测，获取目标title，ip，cms等。探测cms是使用的[boy-hack](https://github.com/boy-hack)大佬的[goWhatweb](https://github.com/boy-hack/goWhatweb)实现的，后续该项目还会添加CDN探测等功能。
+初学go语言，通过golang实现对大批量的域名进行存活检测，获取目标title，ip，cms等。探测cms是使用的[boy-hack](https://github.com/boy-hack)大佬的[goWhatweb](https://github.com/boy-hack/goWhatweb)实现的。
 
 ### 使用方法
 `go run main.go -h` or `Uscan.exe -h`
@@ -23,5 +23,7 @@
 ----
 
 ### 更新
+##### 2021/9/28 添加同时扫描目标的http与https的功能
+推荐目标文件中的url不添加http或https
 ##### 2021/9/17 添加CDN识别功能
 通过访问获取ip的网站，多地ping的形式进行CDN存在与否的识别，后续添加其他网站请求资源。
