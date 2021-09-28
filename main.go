@@ -68,8 +68,10 @@ func file_operation(filepath string) []string {
 		if strings.HasPrefix(line, "http") { //前缀是http开头
 			ss = append(ss, line)
 		} else {
-			line = "http://" + line
-			ss = append(ss, line)
+			linea := "http://" + line
+			lines := "https://" + line
+			ss = append(ss, linea)
+			ss = append(ss, lines)
 		}
 	}
 	file.Close()
